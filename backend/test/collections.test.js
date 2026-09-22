@@ -6,7 +6,7 @@ const {
   createCollection,
   dbUserId,
 } = require("./helpers");
-const { Collection } = require("../models");
+const { Collection, sequelize } = require("../models");
 
 describe("Collections API", () => {
   describe("authentication", () => {
@@ -348,6 +348,71 @@ describe("Collections API", () => {
         .get(`/api/collections/${collection.id}/articles?limit=10&offset=5`)
         .set(headers);
       expect(pastEnd.body.articles).toHaveLength(0);
+    });
+  });
+
+  describe("invariants under stress", () => {
+    test("concurrent duplicate adds still yield a single membership", async () => {
+      const { headers } = await registerUser();
+      const collection = await createCollection(headers);
+      const article = await createArticle(headers);
+
+      const results = await Promise.all([
+        request(app)
+          .post(`/api/collections/${collection.id}/articles`)
+          .set(headers)
+          .send({ slug: article.slug }),
+        request(app)
+          .post(`/api/collections/${collection.id}/articles`)
+          .set(headers)
+          .send({ slug: article.slug }),
+      ]);
+
+      const statuses = results.map((r) => r.status);
+      expect(statuses.filter((s) => s === 201)).toHaveLength(1);
+      expect(statuses.filter((s) => s === 409)).toHaveLength(1);
+
+      const detail = await request(app)
+        .get(`/api/collections/${collection.id}`)
+        .set(headers);
+      expect(detail.body.collection.articlesCount).toBe(1);
+    });
+
+    test("deleting an article removes it from collections", async () => {
+      const { headers } = await registerUser();
+      const collection = await createCollection(headers);
+      const article = await createArticle(headers);
+      await request(app)
+        .post(`/api/collections/${collection.id}/articles`)
+        .set(headers)
+        .send({ slug: article.slug });
+
+      const del = await request(app)
+        .delete(`/api/articles/${article.slug}`)
+        .set(headers);
+      expect(del.status).toBe(200);
+
+      const detail = await request(app)
+        .get(`/api/collections/${collection.id}`)
+        .set(headers);
+      expect(detail.body.collection.articlesCount).toBe(0);
+    });
+
+    test("the collection list does not issue a query per collection", async () => {
+      const { headers } = await registerUser();
+      for (let i = 0; i < 5; i += 1) await createCollection(headers);
+
+      let queryCount = 0;
+      const original = sequelize.options.logging;
+      sequelize.options.logging = () => {
+        queryCount += 1;
+      };
+      await request(app).get("/api/collections").set(headers);
+      sequelize.options.logging = original;
+
+      // auth lookup + grouped list + total count — constant, not O(collections).
+      expect(queryCount).toBeGreaterThan(0);
+      expect(queryCount).toBeLessThanOrEqual(4);
     });
   });
 
