@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    env:
+      # Test DB credentials are CI-only throwaway values, provided here (not in
+      # source) and matched by the postgres service below.
+      TEST_DB_USERNAME: postgres
+      TEST_DB_PASSWORD: postgres
+      TEST_DB_NAME: conduit_testing
+      TEST_DB_HOSTNAME: localhost
+      TEST_DB_DIALECT: postgres
+      TEST_DB_LOGGING: "false"
+      JWT_KEY: ci_test_secret
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: conduit_testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run migrations on a clean database
+        run: npm run sqlz -- db:migrate
+        env:
+          NODE_ENV: test
+
+      - name: Unit and integration tests
+        run: npm run test:run
+        env:
+          NODE_ENV: test
+
+      - name: Build frontend
+        run: npm run build -w frontend
+
+      - name: Verify backend starts
+        run: |
+          node backend/index.js &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3001/ && break || sleep 1
+          done
+          curl -fsS http://localhost:3001/ > /dev/null
+          kill $SERVER_PID
+        env:
+          NODE_ENV: test
+          PORT: 3001
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
