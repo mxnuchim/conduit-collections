@@ -10,6 +10,141 @@ This codebase was created to demonstrate a fully fledged fullstack application b
 
 ---
 
+## Private Article Collections (Metcore assessment)
+
+This fork adds a **private Collections** feature on top of the starter Conduit app.
+An authenticated user can create named collections (with an optional description),
+rename them, edit the description, delete them, save articles into them and remove
+them again, and browse a collection's saved articles with pagination. Collections
+are private: ownership is enforced on the server and one user can never read or
+modify another user's collection by changing an id, body or query parameter.
+
+See [`DESIGN_NOTE.md`](DESIGN_NOTE.md) for the data model, API, authorization and
+scaling decisions.
+
+### What was added
+
+- **Backend:** `Collection` model, two migrations (`Collections` + the
+  `CollectionArticles` join with a composite primary key), a RESTful
+  `/api/collections` controller/routes, input validation and a `409` conflict
+  error for duplicate membership.
+- **Frontend:** a **My Collections** area (list/create/rename/edit/delete/open), a
+  collection detail view with pagination and article removal, and a **Save** control
+  on the article page.
+- **Tests:** backend integration tests (supertest), frontend component tests
+  (Testing Library) and a Playwright end-to-end flow.
+- **Tooling:** ESLint, a split Vitest config and a GitHub Actions workflow.
+
+### Requirements
+
+- **Node.js** `v18.11+` (CI runs Node 20; Node 20.19+/22 is recommended so the Vite
+  and test tooling run without engine warnings).
+- **PostgreSQL** (the app ships the `pg` driver).
+
+### Setup
+
+```bash
+git clone <your-private-repo-url>
+cd conduit-realworld-example-app
+npm install
+```
+
+**Environment.** Copy the example file into the backend workspace and adjust the
+values for your database. The backend loads `.env` from the `backend/` directory:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+`.env` and real secrets are git-ignored; only `backend/.env.example` is committed.
+
+**Database.** Provide a PostgreSQL server one of these ways:
+
+- Use the bundled compose file: `docker compose up -d` (Postgres 16 matching
+  `.env.example`), or
+- Point `DEV_DB_*` / `TEST_DB_*` at your own local PostgreSQL.
+
+Then create and migrate the schema (migrations are the source of truth — no manual
+schema changes):
+
+```bash
+npm run sqlz -- db:create          # development database
+npm run sqlz -- db:migrate
+NODE_ENV=test npm run sqlz -- db:create   # separate test database
+NODE_ENV=test npm run sqlz -- db:migrate
+npm run sqlz -- db:seed:all         # optional demo data
+```
+
+### Run
+
+```bash
+npm run dev        # frontend http://localhost:3000  +  API http://localhost:3001/api
+npm run start      # build the frontend and serve it from the backend (production)
+```
+
+### Tests, lint and build
+
+```bash
+npm run test:run   # all unit + integration tests once (backend needs the test DB)
+npm test           # same suites in watch mode
+npm run test:e2e   # Playwright end-to-end (starts the app against the test DB)
+npm run lint       # ESLint
+npm run build -w frontend   # production frontend build
+```
+
+Run a single Vitest project with `npx vitest run --project backend-api`
+(`backend-unit` / `frontend` are the others). The first Playwright run needs
+`npx playwright install chromium`.
+
+### Assumptions
+
+- The starter builds its full schema at boot via `sequelize.sync({ alter: true })`
+  and ships migrations only for the base tables. That behaviour is left intact; the
+  new tables are delivered as complete, standalone migrations, and the test suite
+  builds the schema from the models (the app's own mechanism) while CI also proves
+  the migrations apply to a clean database.
+- Articles are identified publicly by `slug` (the API hides numeric article ids), so
+  membership endpoints accept a slug — consistent with the existing favourites API.
+- A collection's numeric `id` appears in its URL; this is safe because every query is
+  scoped to the authenticated owner, so a guessed id returns `404`.
+
+### Known limitations
+
+- The collection detail list intentionally omits per-article `favorited` /
+  `favoritesCount` to keep the query O(1) per page and avoid the N+1 pattern the
+  starter's article list uses; the article's own page still shows full favourite state.
+- The `.env.example` dialect was corrected from `mysql` to `postgres` and a typo'd
+  `DB_LOGGING` key was fixed (the installed driver is `pg`).
+- No caching or rate limiting is added yet (see `DESIGN_NOTE.md`).
+
+### What changed from the starter
+
+- Added the Collections model, migrations, controller, routes, validators and a
+  `ConflictError`; extracted the Express app into `backend/app.js` (so it can be
+  tested) while `backend/index.js` still owns `sync` + `listen`.
+- Added the My Collections UI, services and the article **Save** control; added a
+  nav entry.
+- Added Vitest projects, ESLint, Playwright, a GitHub Actions workflow, a
+  `docker-compose.yml`, and installed `happy-dom` (the starter referenced `jsdom`
+  for tests but never installed it).
+- No existing article, auth, profile, comment or feed behaviour was changed.
+
+### AI Usage
+
+AI tools (Claude Code) were used to accelerate exploration of the starter codebase,
+scaffold the Collections backend/frontend following existing conventions, and draft
+tests and documentation. All generated code was reviewed, run and adjusted; the
+author understands and can explain every file committed.
+
+One concrete correction: an initial AI suggestion for the collection-list endpoint
+computed each collection's article count by looping over the collections and issuing
+a `countArticles()` per row — a classic N+1 pattern that the assessment explicitly
+warns against. It was rejected in favour of a single grouped
+`COUNT(articles.id)` aggregate (plus one `Collection.count` for the total), which
+keeps the listing to two queries regardless of how many collections a user has.
+
+---
+
 ## Getting Started
 
 These instructions will help you install and run the project on your local machine for development and testing.
