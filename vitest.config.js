@@ -34,7 +34,7 @@ export default defineConfig({
         test: {
           name: "frontend",
           globals: true,
-          environment: "jsdom",
+          environment: "happy-dom",
           setupFiles: ["frontend/src/setupTests.js"],
           include: ["frontend/src/**/*.{test,spec}.{js,jsx}"],
           css: true,
