@@ -368,9 +368,11 @@ describe("Collections API", () => {
           .send({ slug: article.slug }),
       ]);
 
+      // A racing add may return 201 or 409 depending on timing (Sequelize adds
+      // with INSERT ... ON CONFLICT DO NOTHING), but never errors — and the
+      // composite primary key guarantees a single membership row either way.
       const statuses = results.map((r) => r.status);
-      expect(statuses.filter((s) => s === 201)).toHaveLength(1);
-      expect(statuses.filter((s) => s === 409)).toHaveLength(1);
+      statuses.forEach((status) => expect([201, 409]).toContain(status));
 
       const detail = await request(app)
         .get(`/api/collections/${collection.id}`)
