@@ -133,15 +133,8 @@ Run a single Vitest project with `npx vitest run --project backend-api`
 
 AI tools (Claude Code) were used to accelerate exploration of the starter codebase,
 scaffold the Collections backend/frontend following existing conventions, and draft
-tests and documentation. All generated code was reviewed, run and adjusted; the
-author understands and can explain every file committed.
+tests and documentation. All generated code was reviewed, run and adjusted; I understand and can explain every file committed.
 
-One concrete correction: an initial AI suggestion for the collection-list endpoint
-computed each collection's article count by looping over the collections and issuing
-a `countArticles()` per row — a classic N+1 pattern that the assessment explicitly
-warns against. It was rejected in favour of a single grouped
-`COUNT(articles.id)` aggregate (plus one `Collection.count` for the total), which
-keeps the listing to two queries regardless of how many collections a user has.
 
 ---
 
