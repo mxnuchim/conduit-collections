@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import getCollections from "../../services/getCollections";
 import createCollection from "../../services/createCollection";
 import addArticleToCollection from "../../services/addArticleToCollection";
+import "./AddToCollectionButton.css";
 
 function AddToCollectionButton({ slug }) {
   const { headers, isAuth } = useAuth();
@@ -63,9 +64,9 @@ function AddToCollectionButton({ slug }) {
   };
 
   return (
-    <span className="dropdown add-to-collection">
+    <span className="add-to-collection">
       <button
-        className="btn btn-sm btn-outline-primary"
+        className={`btn btn-sm btn-outline-primary ${open ? "active" : ""}`}
         disabled={pending}
         onClick={toggle}
         data-testid="save-to-collection"
@@ -73,63 +74,77 @@ function AddToCollectionButton({ slug }) {
         <i className="ion-folder"></i>&nbsp;Save
       </button>
 
-      <div
-        className="dropdown-menu"
-        style={{ display: open ? "block" : "none", padding: "0.5rem", minWidth: "16rem" }}
-      >
-        {loading ? (
-          <span className="dropdown-item disabled">Loading collections...</span>
-        ) : (
-          <>
-            {collections.length === 0 ? (
-              <span className="dropdown-item disabled">No collections yet</span>
+      {open && (
+        <>
+          <div
+            className="collection-popover__backdrop"
+            onClick={() => setOpen(false)}
+          />
+          <div className="collection-popover">
+            <div className="collection-popover__title">Add to collection</div>
+
+            {loading ? (
+              <div className="collection-popover__muted">Loading collections…</div>
             ) : (
-              collections.map((collection) => (
-                <button
-                  key={collection.id}
-                  className="dropdown-item"
-                  disabled={pending}
-                  onClick={() => addTo(collection.id)}
-                  data-testid="collection-option"
-                >
-                  {collection.name}
-                </button>
-              ))
-            )}
+              <>
+                {collections.length === 0 ? (
+                  <div className="collection-popover__muted">No collections yet</div>
+                ) : (
+                  <ul className="collection-popover__list">
+                    {collections.map((collection) => (
+                      <li key={collection.id}>
+                        <button
+                          className="collection-popover__item"
+                          disabled={pending}
+                          onClick={() => addTo(collection.id)}
+                          data-testid="collection-option"
+                        >
+                          <span className="collection-popover__item-name">
+                            {collection.name}
+                          </span>
+                          <span className="collection-popover__count">
+                            {collection.articlesCount ?? 0}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
-            <div className="dropdown-divider"></div>
+                <div className="collection-popover__divider" />
 
-            <form onSubmit={createAndAdd} style={{ padding: "0 0.5rem" }}>
-              <input
-                className="form-control form-control-sm"
-                placeholder="New collection name"
-                value={newName}
-                onChange={(event) => setNewName(event.target.value)}
-                data-testid="new-collection-name"
-              />
-              <button
-                className="btn btn-sm btn-primary"
-                type="submit"
-                disabled={pending || !newName.trim()}
-                style={{ marginTop: "0.5rem" }}
-              >
-                Create &amp; save
-              </button>
-            </form>
+                <form className="collection-popover__create" onSubmit={createAndAdd}>
+                  <input
+                    className="form-control form-control-sm"
+                    placeholder="New collection name"
+                    value={newName}
+                    onChange={(event) => setNewName(event.target.value)}
+                    data-testid="new-collection-name"
+                  />
+                  <button
+                    className="btn btn-sm btn-primary"
+                    type="submit"
+                    disabled={pending || !newName.trim()}
+                  >
+                    Create &amp; save
+                  </button>
+                </form>
 
-            {status && (
-              <p className="text-success" style={{ margin: "0.5rem" }} data-testid="save-status">
-                {status}
-              </p>
+                {status && (
+                  <div className="collection-popover__status" data-testid="save-status">
+                    {status}
+                  </div>
+                )}
+                {error && (
+                  <div className="collection-popover__error" data-testid="save-error">
+                    {error}
+                  </div>
+                )}
+              </>
             )}
-            {error && (
-              <p className="error-messages" style={{ margin: "0.5rem" }} data-testid="save-error">
-                {error}
-              </p>
-            )}
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </span>
   );
 }

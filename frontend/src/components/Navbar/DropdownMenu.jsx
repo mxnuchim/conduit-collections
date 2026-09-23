@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import userLogout from "../../services/userLogout";
 import Avatar from "../Avatar";
 import DropdownItem from "./DropdownItem";
+import "./DropdownMenu.css";
 
 function DropdownMenu() {
   const [dropdown, setDropdown] = useState(false);

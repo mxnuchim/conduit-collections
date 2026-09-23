@@ -1,0 +1,116 @@
+.add-to-collection {
+  position: relative;
+  display: inline-block;
+}
+
+.collection-popover__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+.collection-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1000;
+  width: 260px;
+  max-width: 80vw;
+  padding: 8px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.collection-popover__title {
+  padding: 4px 8px 8px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #adb5bd;
+}
+
+.collection-popover__muted {
+  padding: 8px;
+  font-size: 0.875rem;
+  color: #adb5bd;
+}
+
+.collection-popover__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.collection-popover__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #373a3c;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.collection-popover__item:hover:not(:disabled),
+.collection-popover__item:focus-visible:not(:disabled) {
+  background: #f2f7f2;
+  color: var(--brand, #5cb85c);
+  outline: none;
+}
+
+.collection-popover__item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.collection-popover__item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-popover__count {
+  flex: none;
+  padding: 1px 8px;
+  font-size: 0.72rem;
+  color: #868e96;
+  background: #f1f3f5;
+  border-radius: 10px;
+}
+
+.collection-popover__divider {
+  height: 1px;
+  margin: 8px 4px;
+  background: #eee;
+}
+
+.collection-popover__create {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 4px 4px;
+}
+
+.collection-popover__status {
+  padding: 6px 8px 0;
+  font-size: 0.85rem;
+  color: #3d8b3d;
+}
+
+.collection-popover__error {
+  padding: 6px 8px 0;
+  font-size: 0.85rem;
+  color: #b52b27;
+}
